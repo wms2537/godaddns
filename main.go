@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -115,12 +117,6 @@ var SUBDOMAIN = "test"
 func main() {
 	// log file flag
 	logFile := "godaddns.log"
-	POLLING := 360 // Polling interval in seconds. Lookup Godaddy's current rate limits before setting too low
-	DOMAIN = "beautifood.io"
-	GODADDY_SECRET = os.Getenv("API_SECRET")
-	GODADDY_KEY = os.Getenv("API_KEY")
-	SUBDOMAIN = os.Getenv("SUBDOMAIN")
-
 	if logFile == "" {
 		log.SetOutput(os.Stdout)
 	} else {
@@ -129,8 +125,22 @@ func main() {
 			log.Fatalf("Couldn't open log file: %s", err)
 		}
 		defer f.Close()
-		log.SetOutput(f)
+		multi := io.MultiWriter(f, os.Stdout)
+		log.SetOutput(multi)
 	}
+	POLLING := 360 // Polling interval in seconds. Lookup Godaddy's current rate limits before setting too low
+	DOMAIN = "beautifood.io"
+	keyfile, err := ioutil.ReadFile("/run/secrets/beautifood_domain_api_key")
+	if err != nil {
+		log.Fatalf("Could not read key file due to this %s error \n", err)
+	}
+	GODADDY_KEY = strings.TrimSpace(string(keyfile))
+	secretfile, err := ioutil.ReadFile("/run/secrets/beautifood_domain_api_secret")
+	if err != nil {
+		log.Fatalf("Could not read key file due to this %s error \n", err)
+	}
+	GODADDY_SECRET = strings.TrimSpace(string(secretfile))
+	SUBDOMAIN = os.Getenv("SUBDOMAIN")
 
 	if DOMAIN == "" {
 		log.Fatalf("You need to provide your domain")
