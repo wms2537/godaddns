@@ -1,28 +1,28 @@
-# GoDaddy DDNS Service
-How To Use
-```
-docker build -t registry.jomluz.com/ddns:latest .
-docker push registry.jomluz.com/ddns:latest
-```
+# GoDaddy DDNS Server & Client
 Inspired By [https://github.com/proprietary/godaddns](https://github.com/proprietary/godaddns)
 
-## Docker Compose Use
-```yaml
-version: '3.9'
 
-services:
-  ddns:
-    image: registry.jomluz.com/ddns
-    environment:
-      - API_KEY=/run/secrets/domain_api_key
-      - API_SECRET=/run/secrets/domain_api_secret
-      - SUBDOMAIN=jetson
-    secrets:
-     - domain_api_key
-     - domain_api_secret
-secrets:
-  domain_api_key:
-    file: key.txt
-  domain_api_secrets:
-    file: secret.txt
+This repo contains code for the server and client. 
+
+The server receives the dns change requests from the clients together with credentials. Credentials are from a Cosmos-based chain secp256k1 key set.
+
+The client periodically monitors the dns record and determines if a change request is required.
+
+## Envs
+### Client
 ```
+SERVER_URL=
+NODE_ID=
+PASSWORD=
+IP_PROVIDER=
+PRIV_KEY_PATH=
+```
+### Server
+```
+GODADDY_KEY=
+GODADDY_SECRET=
+DOMAIN=
+```
+
+## Docker Compose Use
+Refer to files in `deploy`.

@@ -5,7 +5,7 @@ ENV GOOS=linux GOARCH=arm64
 RUN go mod download
 RUN go build -a -o /main .
 
-FROM arm64v8/alpine
+FROM alpine
 RUN apk add --no-cache ca-certificates openssl tzdata
 COPY --from=builder /main ./
 CMD ["./main"]

@@ -1,0 +1,19 @@
+version: '3.9'
+
+services:
+  ddns:
+    restart: always
+    hostname: ddns
+    container_name: ddns
+    image: registry-intl.ap-southeast-1.aliyuncs.com/swmeng/ddns-server:latest
+    volumes:
+      - "./.env:/.env"
+      - ./badger_data:/badger_data
+    labels:
+      caddy: ddns.jomluz.com
+      caddy.reverse_proxy: "{{upstreams 80}}"
+
+networks:
+  default:
+    name: caddy
+    external: true

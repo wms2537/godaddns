@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+  ddns:
+    restart: always
+    hostname: ddns
+    container_name: ddns
+    network_mode: host
+    image: registry-intl.ap-southeast-1.aliyuncs.com/swmeng/ddns-client:latest
+    volumes:
+      - "./.env:/.env"
+      - ./.priv_key:/.priv_key
