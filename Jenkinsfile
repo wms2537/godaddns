@@ -18,11 +18,5 @@ pipeline {
                 }
             }
         }
-        stage('Remove Unused Docker Image') {
-            steps {
-                sh "docker rmi ${REGISTRY}client"
-                sh "docker rmi ${REGISTRY}server"
-            }
-        }
     }
 }
