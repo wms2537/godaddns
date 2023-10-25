@@ -3,7 +3,7 @@ pipeline {
         REGISTRY = 'registry-intl.ap-southeast-1.aliyuncs.com/swmeng/ddns-'
         registryCredential = 'aliclouddocker'
         DOCKER_CREDENTIALS = credentials('aliclouddocker')
-        DOCKER_BUILDKIT = '1'
+
     }
     agent any
     stages {
