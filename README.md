@@ -26,5 +26,12 @@ DOMAIN=
 BECH32_PREFIX=
 ```
 
+## CLI to add whitelist in server
+```
+./main --whitelist --addr <your-addr> --node-id <subdomain-node-id>
+```
+
 ## Docker Compose Use
-Refer to files in `deploy`.
+Build your own containers.
+
+Refer to files in `deploy` for compose deploy configurations.
