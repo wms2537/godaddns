@@ -21,6 +21,7 @@ import (
 var GODADDY_KEY string
 var GODADDY_SECRET string
 var DOMAIN string
+var BECH32_PREFIX string
 
 type Record struct {
 	Data     string `json:"data"`
@@ -42,8 +43,9 @@ func init() {
 	GODADDY_KEY = os.Getenv("GODADDY_KEY")
 	GODADDY_SECRET = os.Getenv("GODADDY_SECRET")
 	DOMAIN = os.Getenv("DOMAIN")
+	BECH32_PREFIX = os.Getenv("BECH32_PREFIX")
 
-	sdktypes.GetConfig().SetBech32PrefixForAccount("jomtx", "jomtxpub")
+	sdktypes.GetConfig().SetBech32PrefixForAccount(BECH32_PREFIX, BECH32_PREFIX+"pub")
 }
 
 func GetDomainIPv6(subdomain string) (string, error) {
@@ -166,7 +168,7 @@ func verifySignature(pubKeyString string, signatureString string) (bool, string,
 	if err != nil {
 		return false, "", err
 	}
-	if !pub.VerifySignature([]byte("jomtx"), signature) {
+	if !pub.VerifySignature([]byte(BECH32_PREFIX), signature) {
 		return false, "", fmt.Errorf("failed to verify signature")
 	}
 

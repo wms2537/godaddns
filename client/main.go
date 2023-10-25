@@ -80,7 +80,6 @@ func checkDNS(domain string, expectedIPv6 string) (bool, error) {
 
 func main() {
 	// Define the URL of the DDNS server.
-	sdktypes.GetConfig().SetBech32PrefixForAccount("jomtx", "jomtxpub")
 
 	err := godotenv.Load(".env")
 
@@ -93,6 +92,9 @@ func main() {
 	PASSWORD := os.Getenv("PASSWORD")
 	IP_PROVIDER := os.Getenv("IP_PROVIDER")
 	PRIV_KEY_PATH := os.Getenv("PRIV_KEY_PATH")
+	BECH32_PREFIX := os.Getenv("BECH32_PREFIX")
+
+	sdktypes.GetConfig().SetBech32PrefixForAccount(BECH32_PREFIX, BECH32_PREFIX+"pub")
 
 	privateKeyBytes, err := os.ReadFile(PRIV_KEY_PATH)
 	if err != nil {
@@ -107,7 +109,7 @@ func main() {
 	}
 	serverURL := SERVER_URL + "/update-dns"
 
-	signature, err := privKey.Sign([]byte("jomtx"))
+	signature, err := privKey.Sign([]byte(BECH32_PREFIX))
 	if err != nil {
 		fmt.Println("Error signing message:", err)
 		return
