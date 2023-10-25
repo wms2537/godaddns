@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec/legacy"
@@ -44,7 +45,7 @@ func getOwnIPv6(ipProvider string) (string, error) {
 	}
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(resp.Body)
-	return buf.String(), nil
+	return strings.Trim(buf.String(), "\n"), nil
 }
 
 func checkDNS(domain string, expectedIPv6 string) (bool, error) {
@@ -73,7 +74,7 @@ func checkDNS(domain string, expectedIPv6 string) (bool, error) {
 	if resolvedIPv6 == expectedIPv6 {
 		return false, nil
 	} else {
-		fmt.Printf("DNS record (IPv6) needs to be updated. Current IPv6: %s, Expected IPv6: %s\n", resolvedIPv6, expectedIPv6)
+		fmt.Printf("DNS record (IPv6) needs to be updated. Current IPv6: %s, Expected IPv6: %s!\n", resolvedIPv6, expectedIPv6)
 		return true, nil
 	}
 }
@@ -101,7 +102,6 @@ func main() {
 		fmt.Println("Error reading private key file:", err)
 		return
 	}
-	fmt.Println(string(privateKeyBytes))
 	privKey, pubKey, _, err := parseKeys(string(privateKeyBytes), PASSWORD)
 	if err != nil {
 		fmt.Println("Error parsing keys:", err)
