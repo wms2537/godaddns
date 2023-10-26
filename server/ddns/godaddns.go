@@ -8,7 +8,6 @@ import (
 	"godaddns/storage"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -26,11 +25,13 @@ var BECH32_PREFIX string
 
 type Record struct {
 	Data     string `json:"data"`
+	Name     string `json:"name"`
 	Port     int64  `json:"port"`
 	Priority int64  `json:"priority"`
 	Protocol string `json:"protocol"`
 	Service  string `json:"service"`
 	TTL      int64  `json:"ttl"`
+	Type     string `json:"type"`
 	Weight   int64  `json:"weight"`
 }
 
@@ -49,44 +50,50 @@ func init() {
 	sdktypes.GetConfig().SetBech32PrefixForAccount(BECH32_PREFIX, BECH32_PREFIX+"pub")
 }
 
-func GetDomainIPv6(subdomain string) (string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA/%s", DOMAIN, subdomain), nil)
+func GetDomainIPv6(subdomain string) ([]*Record, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA", DOMAIN), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("sso-key %s:%s", GODADDY_KEY, GODADDY_SECRET))
 	c := new(http.Client)
 	resp, err := c.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	in := make([]struct {
-		Data string `json:"data"`
-	}, 1)
+	var in []Record
 	json.NewDecoder(resp.Body).Decode(&in)
 	if len(in) == 0 {
-		return "", nil
+		return nil, nil
 	}
-	return in[0].Data, nil
+	var result []*Record
+	for _, v := range in {
+		if v.Type == "AAAA" {
+			result = append(result, &Record{
+				v.Data,
+				v.Name,
+				v.Port,
+				v.Priority,
+				v.Protocol,
+				v.Service,
+				v.TTL,
+				v.Type,
+				v.Priority,
+			})
+		}
+	}
+	return result, nil
 }
 
-func PutNewIP(ip string, subdomain string) error {
+func PutNewIP(records []*Record) error {
 	var buf bytes.Buffer
 
-	err := json.NewEncoder(&buf).Encode([]Record{{
-		strings.TrimSuffix(ip, "\n"),
-		65535,
-		0,
-		"",
-		"",
-		600,
-		0,
-	}})
+	err := json.NewEncoder(&buf).Encode(records)
 	if err != nil {
 		return err
 	}
 	req, err := http.NewRequest("PUT",
-		fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA/%s", DOMAIN, url.QueryEscape(subdomain)),
+		fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA", DOMAIN),
 		&buf)
 	if err != nil {
 		return err
@@ -101,25 +108,8 @@ func PutNewIP(ip string, subdomain string) error {
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("failed with HTTP status code %d", resp.StatusCode)
 	}
-
-	req, err = http.NewRequest("PUT",
-		fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA/%s", DOMAIN, url.QueryEscape("*."+subdomain)),
-		&buf)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("sso-key %s:%s", GODADDY_KEY, GODADDY_SECRET))
-	c = new(http.Client)
-	resp, err = c.Do(req)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode == 200 {
-		return nil
-	} else {
-		return fmt.Errorf("failed with HTTP status code %d", resp.StatusCode)
-	}
+	fmt.Println("Updated domain")
+	return nil
 }
 
 func UpdateDNSHandler(c *gin.Context) {
@@ -156,13 +146,60 @@ func UpdateDNSHandler(c *gin.Context) {
 		return
 	}
 
-	domainIP, err := GetDomainIPv6(dnsData.NodeId)
+	domainIPv6Records, err := GetDomainIPv6(dnsData.NodeId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if domainIP == "" || domainIP != dnsData.NewIP {
-		if err := PutNewIP(dnsData.NewIP, dnsData.NodeId); err != nil {
+	needsUpdate := false
+	domainExists := false
+	wildcardExists := false
+	for _, v := range domainIPv6Records {
+		if v.Name == dnsData.NodeId {
+			domainExists = true
+			if v.Data != dnsData.NewIP {
+				v.Data = dnsData.NewIP
+				needsUpdate = true
+				fmt.Printf("Domain for %s needs update\n", v.Name)
+			}
+		} else if v.Name == "*."+dnsData.NodeId {
+			wildcardExists = true
+			if v.Data != dnsData.NewIP {
+				v.Data = dnsData.NewIP
+				needsUpdate = true
+				fmt.Printf("Wildcard for %s needs update\n", v.Name)
+			}
+		}
+		v.Port = 65535
+	}
+	if !domainExists {
+		domainIPv6Records = append(domainIPv6Records, &Record{
+			strings.TrimSuffix(dnsData.NewIP, "\n"),
+			dnsData.NodeId,
+			65535,
+			0,
+			"",
+			"",
+			600,
+			"AAAA",
+			0,
+		})
+	}
+	if !wildcardExists {
+		domainIPv6Records = append(domainIPv6Records, &Record{
+			strings.TrimSuffix(dnsData.NewIP, "\n"),
+			"*." + dnsData.NodeId,
+			65535,
+			0,
+			"",
+			"",
+			600,
+			"AAAA",
+			0,
+		})
+	}
+	if needsUpdate {
+		if err := PutNewIP(domainIPv6Records); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -172,7 +209,6 @@ func UpdateDNSHandler(c *gin.Context) {
 }
 
 func verifySignature(pubKeyString string, signatureString string) (bool, string, error) {
-	fmt.Println(pubKeyString)
 	pubBytes, _, err := crypto.UnarmorPubKeyBytes(pubKeyString)
 	if err != nil {
 		return false, "", err
