@@ -8,6 +8,7 @@ import (
 	"godaddns/storage"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -85,7 +86,7 @@ func PutNewIP(ip string, subdomain string) error {
 		return err
 	}
 	req, err := http.NewRequest("PUT",
-		fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA/%s", DOMAIN, subdomain),
+		fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA/%s", DOMAIN, url.QueryEscape(subdomain)),
 		&buf)
 	if err != nil {
 		return err
@@ -97,12 +98,30 @@ func PutNewIP(ip string, subdomain string) error {
 	if err != nil {
 		return err
 	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("failed with HTTP status code %d", resp.StatusCode)
+	}
+
+	req, err = http.NewRequest("PUT",
+		fmt.Sprintf("https://api.godaddy.com/v1/domains/%s/records/AAAA/%s", DOMAIN, url.QueryEscape("*."+subdomain)),
+		&buf)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("sso-key %s:%s", GODADDY_KEY, GODADDY_SECRET))
+	c = new(http.Client)
+	resp, err = c.Do(req)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode == 200 {
 		return nil
 	} else {
 		return fmt.Errorf("failed with HTTP status code %d", resp.StatusCode)
 	}
 }
+
 func UpdateDNSHandler(c *gin.Context) {
 
 	// Extract the new DNS data from the request.
