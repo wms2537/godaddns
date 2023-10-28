@@ -72,6 +72,7 @@ func checkDNS(domain string, expectedIPv6 string) (bool, error) {
 
 	// Compare the resolved IPv6 address with the expected IPv6 address.
 	if resolvedIPv6 == expectedIPv6 {
+		fmt.Printf("DNS record (IPv6) up to date. Current IPv6: %s, Expected IPv6: %s!\n", resolvedIPv6, expectedIPv6)
 		return false, nil
 	} else {
 		fmt.Printf("DNS record (IPv6) needs to be updated. Current IPv6: %s, Expected IPv6: %s!\n", resolvedIPv6, expectedIPv6)
@@ -81,6 +82,7 @@ func checkDNS(domain string, expectedIPv6 string) (bool, error) {
 
 func main() {
 	// Define the URL of the DDNS server.
+	fmt.Println("Starting ...")
 
 	err := godotenv.Load(".env")
 
