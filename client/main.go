@@ -127,10 +127,7 @@ func main() {
 		}
 
 		needsUpdate, err := checkDNS(NODE_ID+".beautifood.io", ownIP)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if needsUpdate {
+		if err != nil || needsUpdate {
 			// Define the DDNS request.
 			request := DDNSRequest{
 				NodeId:    NODE_ID,
