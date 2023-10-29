@@ -173,6 +173,8 @@ func UpdateDNSHandler(c *gin.Context) {
 		v.Port = 65535
 	}
 	if !domainExists {
+		fmt.Printf("Domain for %s needs create\n", dnsData.NodeId)
+		needsUpdate = true
 		domainIPv6Records = append(domainIPv6Records, &Record{
 			strings.TrimSuffix(dnsData.NewIP, "\n"),
 			dnsData.NodeId,
@@ -186,6 +188,8 @@ func UpdateDNSHandler(c *gin.Context) {
 		})
 	}
 	if !wildcardExists {
+		fmt.Printf("Wildcard for %s needs create\n", dnsData.NodeId)
+		needsUpdate = true
 		domainIPv6Records = append(domainIPv6Records, &Record{
 			strings.TrimSuffix(dnsData.NewIP, "\n"),
 			"*." + dnsData.NodeId,
